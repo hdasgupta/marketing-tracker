@@ -263,7 +263,7 @@ class MainActivity : AppCompatActivity() {
             context = this,
             categories = currentCategories,
             onAddCategoryClicked = { showAddCategoryDialog() },
-            onDeleteCategory = { category, onComplete ->
+            onDeleteCategory = { category: Category, onComplete: (Boolean) -> Unit ->
                 viewModel.deleteCategory(category, onComplete)
             }
         )
@@ -281,7 +281,7 @@ class MainActivity : AppCompatActivity() {
             context = this,
             units = currentUnits,
             onAddUnitClicked = { showAddUnitDialog() },
-            onDeleteUnit = { unit, onComplete ->
+            onDeleteUnit = { unit: UnitEntity, onComplete: (Boolean) -> Unit ->
                 viewModel.deleteUnit(unit, onComplete)
             }
         )
