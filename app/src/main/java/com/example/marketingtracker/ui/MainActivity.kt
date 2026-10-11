@@ -21,14 +21,18 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.marketingtracker.MarketingApplication
 import com.example.marketingtracker.R
+import com.example.marketingtracker.model.Category
 import com.example.marketingtracker.model.MarketingItem
+import com.example.marketingtracker.model.UnitEntity
 import com.example.marketingtracker.notification.NotificationScheduler
 import com.example.marketingtracker.ui.adapter.CategoryChipAdapter
 import com.example.marketingtracker.ui.adapter.MarketingItemAdapter
 import com.example.marketingtracker.ui.dialog.AddCategoryDialog
 import com.example.marketingtracker.ui.dialog.AddEditItemDialog
 import com.example.marketingtracker.ui.dialog.AddUnitDialog
+import com.example.marketingtracker.ui.dialog.ManageCategoriesDialog
 import com.example.marketingtracker.ui.dialog.ManageHolidaysDialog
+import com.example.marketingtracker.ui.dialog.ManageUnitsDialog
 import com.example.marketingtracker.ui.dialog.ShiftDateDialog
 import com.example.marketingtracker.util.DateUtils
 import com.google.android.material.floatingactionbutton.FloatingActionButton
@@ -50,7 +54,6 @@ class MainActivity : AppCompatActivity() {
     private lateinit var emptyView: View
     private lateinit var btnShiftAll: TextView
 
-    // Notification Permission Launcher (Android 13+)
     private val requestNotificationPermission =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
             if (isGranted) {
@@ -73,7 +76,6 @@ class MainActivity : AppCompatActivity() {
         observeData()
         checkPermissions()
 
-        // Handle target date from notification tap if available
         intent?.getStringExtra("EXTRA_TARGET_DATE")?.let { targetDate ->
             viewModel.setSelectedDate(targetDate)
         }
@@ -192,8 +194,8 @@ class MainActivity : AppCompatActivity() {
             context = this,
             initialDate = viewModel.selectedDate.value,
             existingItem = item,
-            categories = viewModel.categories.value,
-            units = viewModel.units.value,
+            initialCategories = viewModel.categories.value,
+            initialUnits = viewModel.units.value,
             suggestions = viewModel.itemSuggestions.value,
             onSave = { savedItem ->
                 if (item == null) {
@@ -202,8 +204,24 @@ class MainActivity : AppCompatActivity() {
                     viewModel.updateItem(savedItem)
                 }
             },
-            onAddNewCategory = { showAddCategoryDialog() },
-            onAddNewUnit = { showAddUnitDialog() }
+            onAddCategoryRequest = { name, colorHex, onAdded ->
+                viewModel.addCategory(name, colorHex) { createdCat ->
+                    onAdded(createdCat)
+                    Toast.makeText(this, "Category '${createdCat.name}' added", Toast.LENGTH_SHORT).show()
+                }
+            },
+            onAddUnitRequest = { name, symbol, onAdded ->
+                viewModel.addUnit(name, symbol) { createdUnit ->
+                    onAdded(createdUnit)
+                    Toast.makeText(this, "Unit '${createdUnit.symbol}' added", Toast.LENGTH_SHORT).show()
+                }
+            },
+            onManageCategoriesRequest = { currentList, onUpdated ->
+                showManageCategoriesDialog(currentList, onUpdated)
+            },
+            onManageUnitsRequest = { currentList, onUpdated ->
+                showManageUnitsDialog(currentList, onUpdated)
+            }
         ).show()
     }
 
@@ -237,6 +255,42 @@ class MainActivity : AppCompatActivity() {
         }.show()
     }
 
+    private fun showManageCategoriesDialog(
+        currentCategories: List<Category> = viewModel.categories.value,
+        onUpdated: ((List<Category>) -> Unit)? = null
+    ) {
+        val dialog = ManageCategoriesDialog(
+            context = this,
+            categories = currentCategories,
+            onAddCategoryClicked = { showAddCategoryDialog() },
+            onDeleteCategory = { category, onComplete ->
+                viewModel.deleteCategory(category, onComplete)
+            }
+        )
+        dialog.setOnDismissListener {
+            onUpdated?.invoke(viewModel.categories.value)
+        }
+        dialog.show()
+    }
+
+    private fun showManageUnitsDialog(
+        currentUnits: List<UnitEntity> = viewModel.units.value,
+        onUpdated: ((List<UnitEntity>) -> Unit)? = null
+    ) {
+        val dialog = ManageUnitsDialog(
+            context = this,
+            units = currentUnits,
+            onAddUnitClicked = { showAddUnitDialog() },
+            onDeleteUnit = { unit, onComplete ->
+                viewModel.deleteUnit(unit, onComplete)
+            }
+        )
+        dialog.setOnDismissListener {
+            onUpdated?.invoke(viewModel.units.value)
+        }
+        dialog.show()
+    }
+
     private fun showManageHolidaysDialog() {
         ManageHolidaysDialog(
             this,
@@ -265,8 +319,8 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
-        menu.add(0, 1, 0, "+ Add Category")
-        menu.add(0, 2, 0, "+ Add Unit")
+        menu.add(0, 1, 0, "Manage Categories")
+        menu.add(0, 2, 0, "Manage Units")
         menu.add(0, 3, 0, "Manage Holidays")
         menu.add(0, 4, 0, "Test Notification & Toast Now")
         return true
@@ -275,11 +329,11 @@ class MainActivity : AppCompatActivity() {
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         return when (item.itemId) {
             1 -> {
-                showAddCategoryDialog()
+                showManageCategoriesDialog()
                 true
             }
             2 -> {
-                showAddUnitDialog()
+                showManageUnitsDialog()
                 true
             }
             3 -> {
@@ -287,7 +341,6 @@ class MainActivity : AppCompatActivity() {
                 true
             }
             4 -> {
-                // Test Notification Now
                 Toast.makeText(this, "Triggering test notification check...", Toast.LENGTH_SHORT).show()
                 NotificationScheduler.triggerImmediateCheck(this)
                 true

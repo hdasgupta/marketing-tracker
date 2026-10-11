@@ -59,6 +59,9 @@ interface MarketingDao {
     @Query("SELECT * FROM marketing_items WHERE id = :id")
     suspend fun getItemById(id: Long): MarketingItem?
 
+    @Query("UPDATE marketing_items SET categoryId = :fallbackCategoryId WHERE categoryId = :deletedCategoryId")
+    suspend fun reassignCategoryItems(deletedCategoryId: Long, fallbackCategoryId: Long): Int
+
     // --- Categories ---
     @Query("SELECT * FROM categories ORDER BY name ASC")
     fun getAllCategories(): Flow<List<Category>>
@@ -66,11 +69,14 @@ interface MarketingDao {
     @Query("SELECT * FROM categories ORDER BY name ASC")
     suspend fun getAllCategoriesSync(): List<Category>
 
-    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertCategory(category: Category): Long
 
     @Delete
     suspend fun deleteCategory(category: Category)
+
+    @Query("DELETE FROM categories WHERE id = :id")
+    suspend fun deleteCategoryById(id: Long): Int
 
     @Query("SELECT * FROM categories WHERE id = :id")
     suspend fun getCategoryById(id: Long): Category?
@@ -85,11 +91,14 @@ interface MarketingDao {
     @Query("SELECT * FROM units ORDER BY name ASC")
     suspend fun getAllUnitsSync(): List<UnitEntity>
 
-    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertUnit(unit: UnitEntity): Long
 
     @Delete
     suspend fun deleteUnit(unit: UnitEntity)
+
+    @Query("DELETE FROM units WHERE id = :id")
+    suspend fun deleteUnitById(id: Long): Int
 
     @Query("SELECT COUNT(*) FROM units")
     suspend fun getUnitCount(): Int

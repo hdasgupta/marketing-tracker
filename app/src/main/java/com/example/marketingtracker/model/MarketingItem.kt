@@ -1,20 +1,11 @@
 package com.example.marketingtracker.model
 
 import androidx.room.Entity
-import androidx.room.ForeignKey
 import androidx.room.Index
 import androidx.room.PrimaryKey
 
 @Entity(
     tableName = "marketing_items",
-    foreignKeys = [
-        ForeignKey(
-            entity = Category::class,
-            parentColumns = ["id"],
-            childColumns = ["categoryId"],
-            onDelete = ForeignKey.CASCADE
-        )
-    ],
     indices = [
         Index("categoryId"),
         Index("date"),

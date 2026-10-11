@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:background="@drawable/bg_dialog"
@@ -66,13 +67,23 @@
 
             <ImageButton
                 android:id="@+id/btnAddCategory"
-                android:layout_width="40dp"
-                android:layout_height="40dp"
-                android:layout_marginStart="8dp"
+                android:layout_width="38dp"
+                android:layout_height="38dp"
+                android:layout_marginStart="6dp"
                 android:background="?attr/selectableItemBackgroundBorderless"
                 android:contentDescription="Add Category"
                 android:src="@drawable/ic_add"
-                android:tint="@color/primary" />
+                app:tint="@color/primary" />
+
+            <ImageButton
+                android:id="@+id/btnManageCategories"
+                android:layout_width="38dp"
+                android:layout_height="38dp"
+                android:layout_marginStart="4dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="Manage Categories"
+                android:src="@drawable/ic_list"
+                app:tint="@color/text_secondary" />
 
         </LinearLayout>
 
@@ -88,7 +99,7 @@
             <LinearLayout
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
+                android:layout_weight="0.9"
                 android:orientation="vertical">
 
                 <TextView
@@ -111,8 +122,8 @@
             <LinearLayout
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="12dp"
-                android:layout_weight="1.2"
+                android:layout_marginStart="10dp"
+                android:layout_weight="1.3"
                 android:orientation="vertical">
 
                 <TextView
@@ -131,13 +142,24 @@
             <!-- Add Unit Button -->
             <ImageButton
                 android:id="@+id/btnAddUnit"
-                android:layout_width="40dp"
-                android:layout_height="40dp"
-                android:layout_marginStart="8dp"
+                android:layout_width="38dp"
+                android:layout_height="38dp"
+                android:layout_marginStart="6dp"
                 android:background="?attr/selectableItemBackgroundBorderless"
                 android:contentDescription="Add Unit"
                 android:src="@drawable/ic_add"
-                android:tint="@color/primary" />
+                app:tint="@color/primary" />
+
+            <!-- Manage Units Button -->
+            <ImageButton
+                android:id="@+id/btnManageUnits"
+                android:layout_width="38dp"
+                android:layout_height="38dp"
+                android:layout_marginStart="4dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="Manage Units"
+                android:src="@drawable/ic_list"
+                app:tint="@color/text_secondary" />
 
         </LinearLayout>
 

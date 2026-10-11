@@ -99,15 +99,48 @@ class MainViewModel(private val repository: MarketingRepository) : ViewModel() {
         }
     }
 
-    fun addCategory(name: String, colorHex: String = "#10B981") {
+    fun addCategory(name: String, colorHex: String = "#10B981", onCreated: ((Category) -> Unit)? = null) {
         viewModelScope.launch {
-            repository.insertCategory(Category(name = name, colorHex = colorHex))
+            val cat = Category(name = name, colorHex = colorHex)
+            val newId = repository.insertCategory(cat)
+            val created = cat.copy(id = newId)
+            onCreated?.invoke(created)
         }
     }
 
-    fun addUnit(name: String, symbol: String) {
+    fun deleteCategory(category: Category, onComplete: ((Boolean) -> Unit)? = null) {
         viewModelScope.launch {
-            repository.insertUnit(UnitEntity(name = name, symbol = symbol))
+            val count = repository.getAllCategoriesSync().size
+            if (count <= 1) {
+                onComplete?.invoke(false)
+                return@launch
+            }
+            repository.deleteCategory(category)
+            if (_selectedCategoryId.value == category.id) {
+                _selectedCategoryId.value = null
+            }
+            onComplete?.invoke(true)
+        }
+    }
+
+    fun addUnit(name: String, symbol: String, onCreated: ((UnitEntity) -> Unit)? = null) {
+        viewModelScope.launch {
+            val u = UnitEntity(name = name, symbol = symbol)
+            val newId = repository.insertUnit(u)
+            val created = u.copy(id = newId)
+            onCreated?.invoke(created)
+        }
+    }
+
+    fun deleteUnit(unit: UnitEntity, onComplete: ((Boolean) -> Unit)? = null) {
+        viewModelScope.launch {
+            val count = repository.getAllUnitsSync().size
+            if (count <= 1) {
+                onComplete?.invoke(false)
+                return@launch
+            }
+            repository.deleteUnit(unit)
+            onComplete?.invoke(true)
         }
     }
 

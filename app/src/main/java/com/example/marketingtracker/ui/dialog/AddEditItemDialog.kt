@@ -13,7 +13,6 @@ import android.widget.EditText
 import android.widget.ImageButton
 import android.widget.Spinner
 import android.widget.TextView
-import android.widget.Toast
 import com.example.marketingtracker.R
 import com.example.marketingtracker.model.Category
 import com.example.marketingtracker.model.MarketingItem
@@ -25,15 +24,55 @@ class AddEditItemDialog(
     context: Context,
     private val initialDate: String,
     private val existingItem: MarketingItem? = null,
-    private val categories: List<Category>,
-    private val units: List<UnitEntity>,
+    initialCategories: List<Category>,
+    initialUnits: List<UnitEntity>,
     private val suggestions: List<String>,
     private val onSave: (MarketingItem) -> Unit,
-    private val onAddNewCategory: () -> Unit,
-    private val onAddNewUnit: () -> Unit
+    private val onAddCategoryRequest: (name: String, colorHex: String, onAdded: (Category) -> Unit) -> Unit,
+    private val onAddUnitRequest: (name: String, symbol: String, onAdded: (UnitEntity) -> Unit) -> Unit,
+    private val onManageCategoriesRequest: (currentCategories: List<Category>, onUpdated: (List<Category>) -> Unit) -> Unit,
+    private val onManageUnitsRequest: (currentUnits: List<UnitEntity>, onUpdated: (List<UnitEntity>) -> Unit) -> Unit
 ) : Dialog(context) {
 
     private var selectedDate: String = existingItem?.date ?: initialDate
+
+    // Built-in fallbacks ensure the dropdowns are never empty even if Room is still initializing
+    private val defaultCategories = listOf(
+        Category(1, "Vegetables", "#10B981"),
+        Category(2, "Fruits", "#F59E0B"),
+        Category(3, "Dairy & Eggs", "#3B82F6"),
+        Category(4, "Groceries & Staples", "#8B5CF6"),
+        Category(5, "Meat & Seafood", "#EF4444"),
+        Category(6, "Bakery & Bread", "#D97706"),
+        Category(7, "Beverages", "#06B6D4"),
+        Category(8, "Snacks & Sweets", "#EC4899"),
+        Category(9, "Spices & Condiments", "#F97316"),
+        Category(10, "Household & Cleaning", "#64748B"),
+        Category(11, "Personal Care", "#14B8A6"),
+        Category(12, "Others", "#6B7280")
+    )
+
+    private val defaultUnits = listOf(
+        UnitEntity(1, "Kilogram", "kg"),
+        UnitEntity(2, "Gram", "g"),
+        UnitEntity(3, "Litre", "L"),
+        UnitEntity(4, "Millilitre", "ml"),
+        UnitEntity(5, "Piece", "pc"),
+        UnitEntity(6, "Packet", "pkt"),
+        UnitEntity(7, "Dozen", "doz"),
+        UnitEntity(8, "Box", "box"),
+        UnitEntity(9, "Bottle", "btl"),
+        UnitEntity(10, "Bunch", "bunch"),
+        UnitEntity(11, "Can", "can")
+    )
+
+    private val categoriesList = (if (initialCategories.isNotEmpty()) initialCategories else defaultCategories).toMutableList()
+    private val unitsList = (if (initialUnits.isNotEmpty()) initialUnits else defaultUnits).toMutableList()
+
+    private lateinit var categoryAdapter: ArrayAdapter<String>
+    private lateinit var unitAdapter: ArrayAdapter<String>
+    private lateinit var spCategory: Spinner
+    private lateinit var spUnit: Spinner
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -41,18 +80,20 @@ class AddEditItemDialog(
         setContentView(view)
 
         window?.setLayout(
-            (context.resources.displayMetrics.widthPixels * 0.92).toInt(),
+            (context.resources.displayMetrics.widthPixels * 0.94).toInt(),
             ViewGroup.LayoutParams.WRAP_CONTENT
         )
         window?.setBackgroundDrawableResource(android.R.color.transparent)
 
         val tvDialogTitle = view.findViewById<TextView>(R.id.tvDialogTitle)
         val actvName = view.findViewById<AutoCompleteTextView>(R.id.actvItemName)
-        val spCategory = view.findViewById<Spinner>(R.id.spCategory)
+        spCategory = view.findViewById(R.id.spCategory)
         val btnAddCategory = view.findViewById<ImageButton>(R.id.btnAddCategory)
+        val btnManageCategories = view.findViewById<ImageButton>(R.id.btnManageCategories)
         val etQuantity = view.findViewById<EditText>(R.id.etQuantity)
-        val spUnit = view.findViewById<Spinner>(R.id.spUnit)
+        spUnit = view.findViewById(R.id.spUnit)
         val btnAddUnit = view.findViewById<ImageButton>(R.id.btnAddUnit)
+        val btnManageUnits = view.findViewById<ImageButton>(R.id.btnManageUnits)
         val btnDate = view.findViewById<Button>(R.id.btnDate)
         val etNotes = view.findViewById<EditText>(R.id.etNotes)
         val btnCancel = view.findViewById<Button>(R.id.btnCancel)
@@ -60,7 +101,7 @@ class AddEditItemDialog(
 
         tvDialogTitle.text = if (existingItem == null) "Add Marketing Item" else "Edit Marketing Item"
 
-        // 1. Suggestions Autocomplete for previous items
+        // Autocomplete suggestions from previous history
         val allSuggestions = (suggestions + listOf(
             "Milk", "Bread", "Eggs", "Tomatoes", "Potatoes", "Onions", "Rice",
             "Apples", "Bananas", "Cooking Oil", "Tea", "Coffee", "Sugar", "Salt",
@@ -76,23 +117,11 @@ class AddEditItemDialog(
         actvName.setAdapter(suggestionAdapter)
         actvName.threshold = 1
 
-        // 2. Category Spinner
-        val categoryNames = categories.map { it.name }
-        val categoryAdapter = ArrayAdapter(
-            context,
-            android.R.layout.simple_spinner_dropdown_item,
-            categoryNames
-        )
-        spCategory.adapter = categoryAdapter
+        // Initialize Category Spinner
+        refreshCategoryAdapter()
 
-        // 3. Unit Spinner
-        val unitSymbols = units.map { it.symbol }
-        val unitAdapter = ArrayAdapter(
-            context,
-            android.R.layout.simple_spinner_dropdown_item,
-            unitSymbols
-        )
-        spUnit.adapter = unitAdapter
+        // Initialize Unit Spinner
+        refreshUnitAdapter()
 
         // Populate fields if editing
         if (existingItem != null) {
@@ -100,10 +129,13 @@ class AddEditItemDialog(
             etQuantity.setText(existingItem.formattedQuantity)
             etNotes.setText(existingItem.notes ?: "")
 
-            val catIndex = categories.indexOfFirst { it.id == existingItem.categoryId }
+            val catIndex = categoriesList.indexOfFirst { it.id == existingItem.categoryId }
             if (catIndex >= 0) spCategory.setSelection(catIndex)
 
-            val unitIndex = units.indexOfFirst { it.symbol.equals(existingItem.unit, ignoreCase = true) }
+            val unitIndex = unitsList.indexOfFirst {
+                it.symbol.equals(existingItem.unit, ignoreCase = true) ||
+                it.name.equals(existingItem.unit, ignoreCase = true)
+            }
             if (unitIndex >= 0) spUnit.setSelection(unitIndex)
         } else {
             etQuantity.setText("1")
@@ -128,14 +160,54 @@ class AddEditItemDialog(
             ).show()
         }
 
+        // Add Category: DO NOT DISMISS THIS DIALOG
         btnAddCategory.setOnClickListener {
-            dismiss()
-            onAddNewCategory()
+            AddCategoryDialog(context) { name, colorHex ->
+                onAddCategoryRequest(name, colorHex) { newCat ->
+                    val existingIdx = categoriesList.indexOfFirst { it.name.equals(newCat.name, true) }
+                    if (existingIdx >= 0) {
+                        spCategory.setSelection(existingIdx)
+                    } else {
+                        categoriesList.add(newCat)
+                        refreshCategoryAdapter()
+                        spCategory.setSelection(categoriesList.size - 1)
+                    }
+                }
+            }.show()
         }
 
+        // Manage/Remove Categories: DO NOT DISMISS THIS DIALOG
+        btnManageCategories.setOnClickListener {
+            onManageCategoriesRequest(categoriesList) { updatedList ->
+                categoriesList.clear()
+                categoriesList.addAll(updatedList)
+                refreshCategoryAdapter()
+            }
+        }
+
+        // Add Unit: DO NOT DISMISS THIS DIALOG
         btnAddUnit.setOnClickListener {
-            dismiss()
-            onAddNewUnit()
+            AddUnitDialog(context) { name, symbol ->
+                onAddUnitRequest(name, symbol) { newUnit ->
+                    val existingIdx = unitsList.indexOfFirst { it.symbol.equals(newUnit.symbol, true) }
+                    if (existingIdx >= 0) {
+                        spUnit.setSelection(existingIdx)
+                    } else {
+                        unitsList.add(newUnit)
+                        refreshUnitAdapter()
+                        spUnit.setSelection(unitsList.size - 1)
+                    }
+                }
+            }.show()
+        }
+
+        // Manage/Remove Units: DO NOT DISMISS THIS DIALOG
+        btnManageUnits.setOnClickListener {
+            onManageUnitsRequest(unitsList) { updatedList ->
+                unitsList.clear()
+                unitsList.addAll(updatedList)
+                refreshUnitAdapter()
+            }
         }
 
         btnCancel.setOnClickListener { dismiss() }
@@ -151,15 +223,15 @@ class AddEditItemDialog(
             val qty = qtyStr.toDoubleOrNull() ?: 1.0
 
             val catPosition = spCategory.selectedItemPosition
-            val categoryId = if (catPosition >= 0 && catPosition < categories.size) {
-                categories[catPosition].id
+            val categoryId = if (catPosition >= 0 && catPosition < categoriesList.size) {
+                categoriesList[catPosition].id
             } else {
-                categories.firstOrNull()?.id ?: 1L
+                categoriesList.firstOrNull()?.id ?: 1L
             }
 
             val unitPosition = spUnit.selectedItemPosition
-            val unitSymbol = if (unitPosition >= 0 && unitPosition < units.size) {
-                units[unitPosition].symbol
+            val unitSymbol = if (unitPosition >= 0 && unitPosition < unitsList.size) {
+                unitsList[unitPosition].symbol
             } else {
                 "pc"
             }
@@ -185,5 +257,27 @@ class AddEditItemDialog(
             onSave(item)
             dismiss()
         }
+    }
+
+    private fun refreshCategoryAdapter() {
+        val names = categoriesList.map { it.name }
+        categoryAdapter = ArrayAdapter(
+            context,
+            android.R.layout.simple_spinner_dropdown_item,
+            names
+        )
+        spCategory.adapter = categoryAdapter
+    }
+
+    private fun refreshUnitAdapter() {
+        val displayStrings = unitsList.map {
+            if (it.name.equals(it.symbol, ignoreCase = true)) it.symbol else "${it.name} (${it.symbol})"
+        }
+        unitAdapter = ArrayAdapter(
+            context,
+            android.R.layout.simple_spinner_dropdown_item,
+            displayStrings
+        )
+        spUnit.adapter = unitAdapter
     }
 }

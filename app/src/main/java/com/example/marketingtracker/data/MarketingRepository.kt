@@ -53,8 +53,23 @@ class MarketingRepository(private val dao: MarketingDao) {
     suspend fun insertCategory(category: Category): Long =
         dao.insertCategory(category)
 
-    suspend fun deleteCategory(category: Category) =
+    suspend fun deleteCategory(category: Category) {
+        val allCats = dao.getAllCategoriesSync()
+        val fallback = allCats.firstOrNull { it.id != category.id }
+        if (fallback != null) {
+            dao.reassignCategoryItems(category.id, fallback.id)
+        }
         dao.deleteCategory(category)
+    }
+
+    suspend fun deleteCategoryById(categoryId: Long): Int {
+        val allCats = dao.getAllCategoriesSync()
+        val fallback = allCats.firstOrNull { it.id != categoryId }
+        if (fallback != null) {
+            dao.reassignCategoryItems(categoryId, fallback.id)
+        }
+        return dao.deleteCategoryById(categoryId)
+    }
 
     // Units
     fun getAllUnits(): Flow<List<UnitEntity>> =
@@ -68,6 +83,9 @@ class MarketingRepository(private val dao: MarketingDao) {
 
     suspend fun deleteUnit(unit: UnitEntity) =
         dao.deleteUnit(unit)
+
+    suspend fun deleteUnitById(unitId: Long): Int =
+        dao.deleteUnitById(unitId)
 
     // Holidays
     fun getAllHolidays(): Flow<List<Holiday>> =
