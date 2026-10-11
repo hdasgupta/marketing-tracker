@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Marketing Tracker</string>
+    <string name="marketing_title">Marketing Things</string>
+    <string name="to_buy">To Buy</string>
+    <string name="bought">Bought</string>
+    <string name="add_item">Add Item</string>
+    <string name="edit_item">Edit Item</string>
+    <string name="shift_date">Shift Date</string>
+    <string name="categories">Categories</string>
+    <string name="units">Units</string>
+    <string name="holidays">Holidays</string>
+    <string name="today">Today</string>
+    <string name="tomorrow">Tomorrow</string>
+    <string name="shift_unbought">Shift Unbought to Tomorrow</string>
+    <string name="no_items_title">No items for this date</string>
+    <string name="no_items_desc">Tap the + button to add marketing items to buy.</string>
+</resources>
