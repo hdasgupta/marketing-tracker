@@ -19,13 +19,14 @@ import com.example.marketingtracker.model.Category
 
 class ManageCategoriesDialog(
     context: Context,
-    private val categories: List<Category>,
-    private val onAddCategoryClicked: () -> Unit,
+    categories: List<Category>,
+    private val onAddCategory: (String, String, (Category) -> Unit) -> Unit,
     private val onDeleteCategory: (Category, (Boolean) -> Unit) -> Unit
 ) : Dialog(context) {
 
     private val currentList = categories.toMutableList()
     private lateinit var adapter: CategoryManageAdapter
+    private lateinit var rv: RecyclerView
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -39,7 +40,7 @@ class ManageCategoriesDialog(
         window?.setBackgroundDrawableResource(android.R.color.transparent)
 
         val btnAdd = view.findViewById<Button>(R.id.btnAddCategoryInManage)
-        val rv = view.findViewById<RecyclerView>(R.id.rvManageCategories)
+        rv = view.findViewById(R.id.rvManageCategories)
         val btnClose = view.findViewById<Button>(R.id.btnCloseManageCategories)
 
         adapter = CategoryManageAdapter(currentList) { category ->
@@ -72,18 +73,18 @@ class ManageCategoriesDialog(
         rv.layoutManager = LinearLayoutManager(context)
         rv.adapter = adapter
 
+        // Add Category: Instantly add to list
         btnAdd.setOnClickListener {
-            onAddCategoryClicked()
+            AddCategoryDialog(context) { name, colorHex ->
+                onAddCategory(name, colorHex) { newCat ->
+                    currentList.add(newCat)
+                    adapter.notifyItemInserted(currentList.size - 1)
+                    rv.scrollToPosition(currentList.size - 1)
+                }
+            }.show()
         }
 
         btnClose.setOnClickListener { dismiss() }
-    }
-
-    fun addCategoryToList(category: Category) {
-        currentList.add(category)
-        if (::adapter.isInitialized) {
-            adapter.notifyItemInserted(currentList.size - 1)
-        }
     }
 
     private class CategoryManageAdapter(

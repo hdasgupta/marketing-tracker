@@ -18,13 +18,14 @@ import com.example.marketingtracker.model.UnitEntity
 
 class ManageUnitsDialog(
     context: Context,
-    private val units: List<UnitEntity>,
-    private val onAddUnitClicked: () -> Unit,
+    units: List<UnitEntity>,
+    private val onAddUnit: (String, String, (UnitEntity) -> Unit) -> Unit,
     private val onDeleteUnit: (UnitEntity, (Boolean) -> Unit) -> Unit
 ) : Dialog(context) {
 
     private val currentList = units.toMutableList()
     private lateinit var adapter: UnitManageAdapter
+    private lateinit var rv: RecyclerView
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -38,7 +39,7 @@ class ManageUnitsDialog(
         window?.setBackgroundDrawableResource(android.R.color.transparent)
 
         val btnAdd = view.findViewById<Button>(R.id.btnAddUnitInManage)
-        val rv = view.findViewById<RecyclerView>(R.id.rvManageUnits)
+        rv = view.findViewById(R.id.rvManageUnits)
         val btnClose = view.findViewById<Button>(R.id.btnCloseManageUnits)
 
         adapter = UnitManageAdapter(currentList) { unit ->
@@ -71,18 +72,18 @@ class ManageUnitsDialog(
         rv.layoutManager = LinearLayoutManager(context)
         rv.adapter = adapter
 
+        // Add Unit: Instantly add to list
         btnAdd.setOnClickListener {
-            onAddUnitClicked()
+            AddUnitDialog(context) { name, symbol ->
+                onAddUnit(name, symbol) { newUnit ->
+                    currentList.add(newUnit)
+                    adapter.notifyItemInserted(currentList.size - 1)
+                    rv.scrollToPosition(currentList.size - 1)
+                }
+            }.show()
         }
 
         btnClose.setOnClickListener { dismiss() }
-    }
-
-    fun addUnitToList(unit: UnitEntity) {
-        currentList.add(unit)
-        if (::adapter.isInitialized) {
-            adapter.notifyItemInserted(currentList.size - 1)
-        }
     }
 
     private class UnitManageAdapter(

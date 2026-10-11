@@ -21,6 +21,7 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.marketingtracker.MarketingApplication
 import com.example.marketingtracker.R
+import com.example.marketingtracker.data.AppDatabase
 import com.example.marketingtracker.model.Category
 import com.example.marketingtracker.model.MarketingItem
 import com.example.marketingtracker.model.UnitEntity
@@ -156,8 +157,9 @@ class MainActivity : AppCompatActivity() {
 
         lifecycleScope.launch {
             viewModel.categories.collectLatest { cats ->
-                itemAdapter.updateCategories(cats)
-                categoryChipAdapter.submitList(cats, viewModel.selectedCategoryId.value)
+                val categoriesToUse = if (cats.isNotEmpty()) cats else AppDatabase.getDefaultCategories()
+                itemAdapter.updateCategories(categoriesToUse)
+                categoryChipAdapter.submitList(categoriesToUse, viewModel.selectedCategoryId.value)
             }
         }
 
@@ -190,12 +192,15 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun showAddEditDialog(item: MarketingItem?) {
+        val cats = if (viewModel.categories.value.isNotEmpty()) viewModel.categories.value else AppDatabase.getDefaultCategories()
+        val unts = if (viewModel.units.value.isNotEmpty()) viewModel.units.value else AppDatabase.getDefaultUnits()
+
         AddEditItemDialog(
             context = this,
             initialDate = viewModel.selectedDate.value,
             existingItem = item,
-            initialCategories = viewModel.categories.value,
-            initialUnits = viewModel.units.value,
+            initialCategories = cats,
+            initialUnits = unts,
             suggestions = viewModel.itemSuggestions.value,
             onSave = { savedItem ->
                 if (item == null) {
@@ -259,10 +264,16 @@ class MainActivity : AppCompatActivity() {
         currentCategories: List<Category> = viewModel.categories.value,
         onUpdated: ((List<Category>) -> Unit)? = null
     ) {
+        val catsToUse = if (currentCategories.isNotEmpty()) currentCategories else AppDatabase.getDefaultCategories()
         val dialog = ManageCategoriesDialog(
             context = this,
-            categories = currentCategories,
-            onAddCategoryClicked = { showAddCategoryDialog() },
+            categories = catsToUse,
+            onAddCategory = { name, colorHex, onAdded ->
+                viewModel.addCategory(name, colorHex) { newCat ->
+                    onAdded(newCat)
+                    Toast.makeText(this, "Category '${newCat.name}' added", Toast.LENGTH_SHORT).show()
+                }
+            },
             onDeleteCategory = { category: Category, onComplete: (Boolean) -> Unit ->
                 viewModel.deleteCategory(category, onComplete)
             }
@@ -277,10 +288,16 @@ class MainActivity : AppCompatActivity() {
         currentUnits: List<UnitEntity> = viewModel.units.value,
         onUpdated: ((List<UnitEntity>) -> Unit)? = null
     ) {
+        val unitsToUse = if (currentUnits.isNotEmpty()) currentUnits else AppDatabase.getDefaultUnits()
         val dialog = ManageUnitsDialog(
             context = this,
-            units = currentUnits,
-            onAddUnitClicked = { showAddUnitDialog() },
+            units = unitsToUse,
+            onAddUnit = { name, symbol, onAdded ->
+                viewModel.addUnit(name, symbol) { newUnit ->
+                    onAdded(newUnit)
+                    Toast.makeText(this, "Unit '${newUnit.symbol}' added", Toast.LENGTH_SHORT).show()
+                }
+            },
             onDeleteUnit = { unit: UnitEntity, onComplete: (Boolean) -> Unit ->
                 viewModel.deleteUnit(unit, onComplete)
             }

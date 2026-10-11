@@ -14,6 +14,7 @@ import android.widget.ImageButton
 import android.widget.Spinner
 import android.widget.TextView
 import com.example.marketingtracker.R
+import com.example.marketingtracker.data.AppDatabase
 import com.example.marketingtracker.model.Category
 import com.example.marketingtracker.model.MarketingItem
 import com.example.marketingtracker.model.UnitEntity
@@ -36,38 +37,8 @@ class AddEditItemDialog(
 
     private var selectedDate: String = existingItem?.date ?: initialDate
 
-    // Built-in fallbacks ensure the dropdowns are never empty even if Room is still initializing
-    private val defaultCategories = listOf(
-        Category(1, "Vegetables", "#10B981"),
-        Category(2, "Fruits", "#F59E0B"),
-        Category(3, "Dairy & Eggs", "#3B82F6"),
-        Category(4, "Groceries & Staples", "#8B5CF6"),
-        Category(5, "Meat & Seafood", "#EF4444"),
-        Category(6, "Bakery & Bread", "#D97706"),
-        Category(7, "Beverages", "#06B6D4"),
-        Category(8, "Snacks & Sweets", "#EC4899"),
-        Category(9, "Spices & Condiments", "#F97316"),
-        Category(10, "Household & Cleaning", "#64748B"),
-        Category(11, "Personal Care", "#14B8A6"),
-        Category(12, "Others", "#6B7280")
-    )
-
-    private val defaultUnits = listOf(
-        UnitEntity(1, "Kilogram", "kg"),
-        UnitEntity(2, "Gram", "g"),
-        UnitEntity(3, "Litre", "L"),
-        UnitEntity(4, "Millilitre", "ml"),
-        UnitEntity(5, "Piece", "pc"),
-        UnitEntity(6, "Packet", "pkt"),
-        UnitEntity(7, "Dozen", "doz"),
-        UnitEntity(8, "Box", "box"),
-        UnitEntity(9, "Bottle", "btl"),
-        UnitEntity(10, "Bunch", "bunch"),
-        UnitEntity(11, "Can", "can")
-    )
-
-    private val categoriesList = (if (initialCategories.isNotEmpty()) initialCategories else defaultCategories).toMutableList()
-    private val unitsList = (if (initialUnits.isNotEmpty()) initialUnits else defaultUnits).toMutableList()
+    private val categoriesList = (if (initialCategories.isNotEmpty()) initialCategories else AppDatabase.getDefaultCategories()).toMutableList()
+    private val unitsList = (if (initialUnits.isNotEmpty()) initialUnits else AppDatabase.getDefaultUnits()).toMutableList()
 
     private lateinit var categoryAdapter: ArrayAdapter<String>
     private lateinit var unitAdapter: ArrayAdapter<String>
@@ -103,9 +74,9 @@ class AddEditItemDialog(
 
         // Autocomplete suggestions from previous history
         val allSuggestions = (suggestions + listOf(
-            "Milk", "Bread", "Eggs", "Tomatoes", "Potatoes", "Onions", "Rice",
-            "Apples", "Bananas", "Cooking Oil", "Tea", "Coffee", "Sugar", "Salt",
-            "Chicken", "Wheat Flour", "Butter", "Cheese", "Garlic", "Ginger",
+            "Medicines", "Milk", "Bread", "Eggs", "Tomatoes", "Potatoes", "Onions", "Rice",
+            "Chicken", "Fish", "Apples", "Bananas", "Cooking Oil", "Tea", "Coffee", "Sugar", "Salt",
+            "Wheat Flour", "Butter", "Cheese", "Garlic", "Ginger", "Water Bottle",
             "Toothpaste", "Dish Soap", "Laundry Detergent", "Biscuits"
         )).distinct()
 
@@ -176,7 +147,7 @@ class AddEditItemDialog(
             }.show()
         }
 
-        // Manage/Remove Categories: DO NOT DISMISS THIS DIALOG
+        // Manage Categories: DO NOT DISMISS THIS DIALOG
         btnManageCategories.setOnClickListener {
             onManageCategoriesRequest(categoriesList) { updatedList ->
                 categoriesList.clear()
@@ -201,7 +172,7 @@ class AddEditItemDialog(
             }.show()
         }
 
-        // Manage/Remove Units: DO NOT DISMISS THIS DIALOG
+        // Manage Units: DO NOT DISMISS THIS DIALOG
         btnManageUnits.setOnClickListener {
             onManageUnitsRequest(unitsList) { updatedList ->
                 unitsList.clear()

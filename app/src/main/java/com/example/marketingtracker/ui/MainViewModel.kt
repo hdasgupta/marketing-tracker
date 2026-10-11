@@ -9,6 +9,7 @@ import com.example.marketingtracker.model.Holiday
 import com.example.marketingtracker.model.MarketingItem
 import com.example.marketingtracker.model.UnitEntity
 import com.example.marketingtracker.util.DateUtils
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -16,6 +17,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class MainViewModel(private val repository: MarketingRepository) : ViewModel() {
 
@@ -95,7 +97,9 @@ class MainViewModel(private val repository: MarketingRepository) : ViewModel() {
     fun shiftAllUnboughtItems(oldDate: String, newDate: String, onComplete: ((Int) -> Unit)? = null) {
         viewModelScope.launch {
             val count = repository.shiftAllUnboughtItems(oldDate, newDate)
-            onComplete?.invoke(count)
+            withContext(Dispatchers.Main) {
+                onComplete?.invoke(count)
+            }
         }
     }
 
@@ -104,7 +108,9 @@ class MainViewModel(private val repository: MarketingRepository) : ViewModel() {
             val cat = Category(name = name, colorHex = colorHex)
             val newId = repository.insertCategory(cat)
             val created = cat.copy(id = newId)
-            onCreated?.invoke(created)
+            withContext(Dispatchers.Main) {
+                onCreated?.invoke(created)
+            }
         }
     }
 
@@ -112,14 +118,18 @@ class MainViewModel(private val repository: MarketingRepository) : ViewModel() {
         viewModelScope.launch {
             val count = repository.getAllCategoriesSync().size
             if (count <= 1) {
-                onComplete?.invoke(false)
+                withContext(Dispatchers.Main) {
+                    onComplete?.invoke(false)
+                }
                 return@launch
             }
             repository.deleteCategory(category)
             if (_selectedCategoryId.value == category.id) {
                 _selectedCategoryId.value = null
             }
-            onComplete?.invoke(true)
+            withContext(Dispatchers.Main) {
+                onComplete?.invoke(true)
+            }
         }
     }
 
@@ -128,7 +138,9 @@ class MainViewModel(private val repository: MarketingRepository) : ViewModel() {
             val u = UnitEntity(name = name, symbol = symbol)
             val newId = repository.insertUnit(u)
             val created = u.copy(id = newId)
-            onCreated?.invoke(created)
+            withContext(Dispatchers.Main) {
+                onCreated?.invoke(created)
+            }
         }
     }
 
@@ -136,11 +148,15 @@ class MainViewModel(private val repository: MarketingRepository) : ViewModel() {
         viewModelScope.launch {
             val count = repository.getAllUnitsSync().size
             if (count <= 1) {
-                onComplete?.invoke(false)
+                withContext(Dispatchers.Main) {
+                    onComplete?.invoke(false)
+                }
                 return@launch
             }
             repository.deleteUnit(unit)
-            onComplete?.invoke(true)
+            withContext(Dispatchers.Main) {
+                onComplete?.invoke(true)
+            }
         }
     }
 
