@@ -78,11 +78,9 @@ class NotificationReceiver : BroadcastReceiver() {
                     val title = "Items to Buy Today ($itemCount)"
 
                     val bigTextBuilder = StringBuilder()
-                    bigTextBuilder.append("Marketing list for today:
-")
+                    bigTextBuilder.appendLine("Marketing list for today:")
                     for (item in unboughtItems) {
-                        bigTextBuilder.append("• ${item.name} — ${item.formattedQuantity} ${item.unit}
-")
+                        bigTextBuilder.appendLine("• ${item.name} — ${item.formattedQuantity} ${item.unit}")
                     }
                     val fullMessage = bigTextBuilder.toString().trimEnd()
 
